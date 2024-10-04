@@ -9,5 +9,5 @@ export const colors = {
   white: "#FFFFFF",
   lightBlack: "#000000",
   lightGrey: "#7A7A7A",
-  accentBlue: "005FFF",
+  accentBlue: "#005FFF",
 };

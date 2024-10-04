@@ -387,7 +387,7 @@ function Chat({ route }) {
           return (
             <Text
               style={{
-                color: colors.loadingContainer, // Change color based on sender
+                color: colors.lightGrey, // Change color based on sender
                 fontSize: 12, // Customize font size
                 paddingTop: 5,
                 paddingBottom: 5,
