@@ -25,12 +25,16 @@ import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import uuid from "react-native-uuid";
 import { Image } from "expo-image"; // Import from expo-image
+import ImageViewing from "react-native-image-viewing";
 
 function Chat({ route }) {
   const navigation = useNavigation();
   const [messages, setMessages] = useState([]);
   const [modal, setModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const [visible, setVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -342,22 +346,33 @@ function Chat({ route }) {
     []
   );
 
+  // Function to handle image click
+  const onImagePress = (imageUri) => {
+    setSelectedImage([{ uri: imageUri }]);
+    setVisible(true);
+  };
+
+  // Custom renderer for message images
   const renderMessageImage = (props) => {
     const { currentMessage } = props;
 
     return (
-      <Image
-        style={{
-          width: 180, // Width 180
-          height: 180, // Height 180
-          borderRadius: 10, // Rounded corners with 16px radius
-          marginLeft: 10,
-          marginRight: 10,
-          marginTop: 10,
-        }} // Adjust dimensions as needed
-        source={currentMessage.image}
-        cachePolicy="memory-disk" // Use caching
-      />
+      <TouchableOpacity
+        onPress={() => onImagePress(props.currentMessage.image)}
+      >
+        <Image
+          style={{
+            width: 180, // Width 180
+            height: 180, // Height 180
+            borderRadius: 10, // Rounded corners with 16px radius
+            marginLeft: 10,
+            marginRight: 10,
+            marginTop: 10,
+          }} // Adjust dimensions as needed
+          source={currentMessage.image}
+          cachePolicy="memory-disk" // Use caching
+        />
+      </TouchableOpacity>
     );
   };
 
@@ -421,6 +436,14 @@ function Chat({ route }) {
         onPressActionButton={handleEmojiPanel}
         scrollToBottomStyle={styles.scrollToBottomStyle}
         renderLoading={renderLoading}
+      />
+
+      {/* Image viewer for zooming */}
+      <ImageViewing
+        images={selectedImage || []}
+        imageIndex={0}
+        visible={visible}
+        onRequestClose={() => setVisible(false)} // Close viewer on request
       />
 
       {modal && (
