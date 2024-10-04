@@ -14,15 +14,17 @@ import {
   Bubble,
   Send,
   InputToolbar,
+  Time,
 } from "react-native-gifted-chat";
-import { auth, database } from "../config/firebase";
+import { auth, database, storage } from "../config/firebase";
 import { doc, onSnapshot, setDoc, getDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { colors } from "../config/constants";
 import EmojiModal from "react-native-emoji-modal";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import uuid from "react-native-uuid";
+import { Image } from "expo-image"; // Import from expo-image
 
 function Chat({ route }) {
   const navigation = useNavigation();
@@ -135,27 +137,33 @@ function Chat({ route }) {
   const uploadImage = (uri) => {
     setUploading(true);
     const randomString = uuid.v4();
-    const xhrPromise = new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.onload = () => resolve(xhr.response);
-      xhr.onerror = () => reject(new TypeError("Network request failed"));
-      xhr.responseType = "blob";
-      xhr.open("GET", uri, true);
-      xhr.send(null);
-    });
+    console.log("--- ranđom", randomString);
+    const fileRef = ref(storage, randomString);
 
-    xhrPromise
+    fetch(uri)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.blob();
+      })
       .then((blob) => {
-        const fileRef = ref(getStorage(), randomString);
-        return uploadBytes(fileRef, blob).then(() => {
-          try {
-            blob.close(); // Try/catch to prevent crashes
-          } catch (error) {
-            setUploading(false);
-            console.error("Error closing blob:", error);
-          }
-          return getDownloadURL(fileRef);
-        });
+        console.log("====? 111", fileRef);
+        return uploadBytes(fileRef, blob)
+          .then(() => {
+            console.log("====? 1122");
+            try {
+              console.log("====? 11133");
+              blob.close(); // Close the blob to free up memory
+            } catch (error) {
+              setUploading(false);
+              console.error("Error closing blob:", error);
+            }
+            return getDownloadURL(fileRef);
+          })
+          .catch((error) => {
+            console.log("---> crash app", error);
+          });
       })
       .then((uploadedFileString) => {
         setUploading(false);
@@ -177,6 +185,51 @@ function Chat({ route }) {
         setUploading(false);
         console.error("Upload failed:", error);
       });
+
+    // setUploading(true);
+    // const randomString = uuid.v4();
+    // const xhrPromise = new Promise((resolve, reject) => {
+    //   const xhr = new XMLHttpRequest();
+    //   xhr.onload = () => resolve(xhr.response);
+    //   xhr.onerror = () => reject(new TypeError("Network request failed"));
+    //   xhr.responseType = "blob";
+    //   xhr.open("GET", uri, true);
+    //   xhr.send(null);
+    // });
+
+    // xhrPromise
+    //   .then((blob) => {
+    //     const fileRef = ref(getStorage(), randomString);
+    //     return uploadBytes(fileRef, blob).then(() => {
+    //       try {
+    //         blob.close(); // Try/catch to prevent crashes
+    //       } catch (error) {
+    //         setUploading(false);
+    //         console.error("Error closing blob:", error);
+    //       }
+    //       return getDownloadURL(fileRef);
+    //     });
+    //   })
+    //   .then((uploadedFileString) => {
+    //     setUploading(false);
+    //     onSend([
+    //       {
+    //         _id: randomString,
+    //         createdAt: new Date(),
+    //         text: "",
+    //         image: uploadedFileString,
+    //         user: {
+    //           _id: auth?.currentUser?.email,
+    //           name: auth?.currentUser?.displayName,
+    //           avatar: "https://i.pravatar.cc/300",
+    //         },
+    //       },
+    //     ]);
+    //   })
+    //   .catch((error) => {
+    //     setUploading(false);
+    //     console.error("Upload failed:", error);
+    //   });
   };
 
   const renderBubble = useMemo(
@@ -185,8 +238,24 @@ function Chat({ route }) {
         <Bubble
           {...props}
           wrapperStyle={{
-            right: { backgroundColor: colors.primary },
-            left: { backgroundColor: "lightgrey" },
+            right: {
+              backgroundColor: colors.greyWhisper,
+            },
+            left: {
+              backgroundColor: colors.white,
+              borderColor: colors.greyWhisper,
+              borderWidth: 1,
+            },
+          }}
+          textStyle={{
+            left: {
+              color: colors.lightBlack,
+              fontSize: 14,
+            },
+            right: {
+              color: colors.lightBlack,
+              fontSize: 14,
+            },
           }}
         />
       ),
@@ -273,6 +342,25 @@ function Chat({ route }) {
     []
   );
 
+  const renderMessageImage = (props) => {
+    const { currentMessage } = props;
+
+    return (
+      <Image
+        style={{
+          width: 180, // Width 180
+          height: 180, // Height 180
+          borderRadius: 10, // Rounded corners with 16px radius
+          marginLeft: 10,
+          marginRight: 10,
+          marginTop: 10,
+        }} // Adjust dimensions as needed
+        source={currentMessage.image}
+        cachePolicy="memory-disk" // Use caching
+      />
+    );
+  };
+
   return (
     <>
       {uploading && renderLoadingUpload()}
@@ -294,6 +382,40 @@ function Chat({ route }) {
         renderUsernameOnMessage={true}
         renderAvatarOnTop={true}
         renderInputToolbar={renderInputToolbar}
+        renderMessageImage={renderMessageImage} // Use FastImage for caching
+        renderTime={(props) => {
+          return (
+            <Text
+              style={{
+                color: colors.loadingContainer, // Change color based on sender
+                fontSize: 12, // Customize font size
+                paddingTop: 5,
+                paddingBottom: 5,
+              }}
+            >
+              {"   "}
+              {props.currentMessage.createdAt.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}{" "}
+            </Text>
+          );
+        }}
+        renderTicks={(props) => {
+          return (
+            <Text
+              style={{
+                color: colors.accentBlue, // Invisible if not sent/received/read
+                fontSize: 12,
+                paddingTop: 5,
+                paddingBottom: 5,
+              }}
+            >
+              ✓{"  "}
+            </Text>
+          );
+        }}
         minInputToolbarHeight={56}
         scrollToBottom={true}
         onPressActionButton={handleEmojiPanel}
