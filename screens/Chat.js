@@ -142,9 +142,9 @@ function Chat({ route }) {
   const uploadImage = async (uri) => {
     setUploading(true);
     const randomString = uuid.v4(); //uri.split("/").pop();
-    const uploadResp = await uploadToFirebase(uri, randomString, (v) =>
-      console.log(v)
-    ).catch((v) => {
+    const uploadResp = await uploadToFirebase(uri, randomString, (v) => {
+      // console.log(v)
+    }).catch((v) => {
       setUploading(false);
       Alert.alert("Error", "Upload Error");
     });
@@ -164,7 +164,7 @@ function Chat({ route }) {
       },
     ]);
 
-    console.log(uploadResp);
+    // console.log(uploadResp);
 
     // setUploading(true);
     // const randomString = uuid.v4();

@@ -58,7 +58,6 @@ export const uploadToFirebase = async (uri, name, onProgress) => {
       },
       (error) => {
         // Handle unsuccessful uploads
-        console.log(error);
         reject(error);
       },
       async () => {
