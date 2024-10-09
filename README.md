@@ -156,3 +156,5 @@ This software uses the following packages:
 <a href="https://github.com/Ctere1/">
   <img src="https://contrib.rocks/image?repo=Ctere1/Ctere1" />
 </a>
+
+## https://github.com/aaronksaunders/react-native-expo-image-picker-camera-firebase/blob/main/firebase-config.js

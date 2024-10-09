@@ -7,6 +7,7 @@ import {
   Keyboard,
   Text,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -16,7 +17,7 @@ import {
   InputToolbar,
   Time,
 } from "react-native-gifted-chat";
-import { auth, database, storage } from "../config/firebase";
+import { auth, database, uploadToFirebase } from "../config/firebase";
 import { doc, onSnapshot, setDoc, getDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { colors } from "../config/constants";
@@ -138,57 +139,83 @@ function Chat({ route }) {
   //   ]);
   // };
 
-  const uploadImage = (uri) => {
+  const uploadImage = async (uri) => {
     setUploading(true);
-    const randomString = uuid.v4();
-    console.log("--- ranđom", randomString);
-    const fileRef = ref(storage, randomString);
+    const randomString = uuid.v4(); //uri.split("/").pop();
+    const uploadResp = await uploadToFirebase(uri, randomString, (v) =>
+      console.log(v)
+    ).catch((v) => {
+      setUploading(false);
+      Alert.alert("Error", "Upload Error");
+    });
 
-    fetch(uri)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.blob();
-      })
-      .then((blob) => {
-        console.log("====? 111", fileRef);
-        return uploadBytes(fileRef, blob)
-          .then(() => {
-            console.log("====? 1122");
-            try {
-              console.log("====? 11133");
-              blob.close(); // Close the blob to free up memory
-            } catch (error) {
-              setUploading(false);
-              console.error("Error closing blob:", error);
-            }
-            return getDownloadURL(fileRef);
-          })
-          .catch((error) => {
-            console.log("---> crash app", error);
-          });
-      })
-      .then((uploadedFileString) => {
-        setUploading(false);
-        onSend([
-          {
-            _id: randomString,
-            createdAt: new Date(),
-            text: "",
-            image: uploadedFileString,
-            user: {
-              _id: auth?.currentUser?.email,
-              name: auth?.currentUser?.displayName,
-              avatar: "https://i.pravatar.cc/300",
-            },
-          },
-        ]);
-      })
-      .catch((error) => {
-        setUploading(false);
-        console.error("Upload failed:", error);
-      });
+    setUploading(false);
+    onSend([
+      {
+        _id: randomString,
+        createdAt: new Date(),
+        text: "",
+        image: uploadResp.downloadUrl,
+        user: {
+          _id: auth?.currentUser?.email,
+          name: auth?.currentUser?.displayName,
+          avatar: "https://i.pravatar.cc/300",
+        },
+      },
+    ]);
+
+    console.log(uploadResp);
+
+    // setUploading(true);
+    // const randomString = uuid.v4();
+    // console.log("--- ranđom", randomString);
+    // const fileRef = ref(storage, randomString);
+
+    // fetch(uri)
+    //   .then((response) => {
+    //     if (!response.ok) {
+    //       throw new Error("Network response was not ok");
+    //     }
+    //     return response.blob();
+    //   })
+    //   .then((blob) => {
+    //     console.log("====? 111", fileRef);
+    //     return uploadBytes(fileRef, blob)
+    //       .then(() => {
+    //         console.log("====? 1122");
+    //         try {
+    //           console.log("====? 11133");
+    //           blob.close(); // Close the blob to free up memory
+    //         } catch (error) {
+    //           setUploading(false);
+    //           console.error("Error closing blob:", error);
+    //         }
+    //         return getDownloadURL(fileRef);
+    //       })
+    //       .catch((error) => {
+    //         console.log("---> crash app", error);
+    //       });
+    //   })
+    //   .then((uploadedFileString) => {
+    //     setUploading(false);
+    //     onSend([
+    //       {
+    //         _id: randomString,
+    //         createdAt: new Date(),
+    //         text: "",
+    //         image: uploadedFileString,
+    //         user: {
+    //           _id: auth?.currentUser?.email,
+    //           name: auth?.currentUser?.displayName,
+    //           avatar: "https://i.pravatar.cc/300",
+    //         },
+    //       },
+    //     ]);
+    //   })
+    //   .catch((error) => {
+    //     setUploading(false);
+    //     console.error("Upload failed:", error);
+    //   });
 
     // setUploading(true);
     // const randomString = uuid.v4();
